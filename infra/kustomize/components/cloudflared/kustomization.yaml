@@ -1,0 +1,6 @@
+# Reusable Cloudflare tunnel component. Overlays add it via `components:` and
+# patch the TUNNEL_TOKEN secretKeyRef to their ksops-generated tunnel secret.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - deployment.yaml

@@ -1,0 +1,21 @@
+# Demo overlay: kdelta base + read RBAC + the cloudflared component, exposed
+# at demo.kdelta.dev through the `kdelta-demo` Cloudflare tunnel.
+#
+# Requires ksops on PATH and the restricted PGP private key (see /.sops.yaml).
+# The tunnel token lives sops-encrypted at
+# secrets/restricted/cloudflared-token.enc.env (`task sops:encrypt` regenerates
+# it from the git-ignored plaintext sibling). Build with:
+#   kustomize build --enable-alpha-plugins --enable-exec infra/kustomize/overlays/demo
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kdelta
+resources:
+  - ../../base
+  - rbac.yaml
+components:
+  - ../../components/cloudflared
+generators:
+  - secrets/cloudflared-token.yaml
+patches:
+  - path: cloudflared-token-patch.yaml
+  - path: claude-token-patch.yaml

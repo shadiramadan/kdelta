@@ -1,0 +1,19 @@
+# sops encryption rules for ksops-managed secrets (infra/kustomize overlays).
+#
+# Secret payloads live in secrets/<class>/ directories inside each overlay
+# (e.g. secrets/restricted/cloudflared-token.env) so the file names stay
+# identical across layers and the path carries the classification. Two PGP
+# keys separate the classes:
+#   confidential  F7272352C2A349C0B5B4200AC2A7BBA3C0E6298D  (kdelta sops confidential <sops-confidential@kdelta.dev>)
+#   restricted    9F7C893954CC8902E28890CBCBADB2F20D52ED66  (kdelta sops restricted <sops-restricted@kdelta.dev>)
+# Public keys for encrypting are committed under hack/keys/; private keys live
+# in the maintainer's GnuPG keyring (never in the repo).
+creation_rules:
+  - path_regex: confidential
+    pgp: F7272352C2A349C0B5B4200AC2A7BBA3C0E6298D
+
+  - path_regex: restricted
+    pgp: 9F7C893954CC8902E28890CBCBADB2F20D52ED66
+
+  # Default (restricted)
+  - pgp: 9F7C893954CC8902E28890CBCBADB2F20D52ED66

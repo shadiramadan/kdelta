@@ -1,0 +1,128 @@
+# demo-ns-2: keystore, Vault, RBAC, and cainjector fixtures for the
+# 1.17.2 -> 1.21.1 changelog findings.
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keystore-password
+  namespace: demo-ns-2
+type: Opaque
+stringData:
+  password: kdelta-demo-not-a-real-password
+---
+# FLAG (v1.21.0): keystores.pkcs12 without profile still defaults to LegacyRC2
+# (RC2/3DES/HMAC-SHA1) on the target version; Modern2026 (FIPS 140-3) exists
+# there and should be adopted. Combined with the omitted rotationPolicy (FLAG,
+# v1.18.0/GA v1.20), the keystore contents — private key included — regenerate
+# on every renewal after upgrade.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: keystore-app-tls
+  namespace: demo-ns-2
+spec:
+  secretName: keystore-app-tls
+  dnsNames:
+    - keystore.demo-ns-2.svc.cluster.local
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  keystores:
+    pkcs12:
+      create: true
+      passwordSecretRef:
+        name: keystore-password
+        key: password
+    jks:
+      create: true
+      passwordSecretRef:
+        name: keystore-password
+        key: password
+  issuerRef:
+    name: demo-ca
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-issuer-sa
+  namespace: demo-ns-2
+---
+# Intentionally unreachable Vault (stays Ready=False) — it's here for its spec:
+#  FLAG (v1.20.0): SA tokens minted for Vault auth now include the Vault server
+#         address in their default audiences; Vault roles with strict bound
+#         audiences must be updated before upgrading.
+#  FLAG (v1.21.0): the Helm chart stopped shipping the Role/RoleBinding that
+#         grants `create` on serviceaccounts/token — issuers using
+#         auth.kubernetes.serviceAccountRef break until that RBAC is re-added.
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: vault-issuer
+  namespace: demo-ns-2
+spec:
+  vault:
+    server: https://vault.demo-ns-2.svc.cluster.local:8200
+    path: pki/sign/kdelta-demo
+    auth:
+      kubernetes:
+        role: cert-manager
+        mountPath: /v1/auth/kubernetes
+        serviceAccountRef:
+          name: vault-issuer-sa
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: demo-cert-admin
+  namespace: demo-ns-2
+---
+# FLAG (v1.21.0, backported 1.20.3/1.19.6 — GHSA-8rvj-mm4h-c258): the
+# cert-manager-edit aggregate ClusterRole no longer allows creating Challenge
+# resources (or creating/updating Orders). Any automation bound to it that
+# manufactures Challenges/Orders directly loses that ability on upgrade.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: demo-cert-admin-edit
+  namespace: demo-ns-2
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cert-manager-edit
+subjects:
+  - kind: ServiceAccount
+    name: demo-cert-admin
+    namespace: demo-ns-2
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: demo-webhook-cert
+  namespace: demo-ns-2
+spec:
+  secretName: demo-webhook-cert
+  dnsNames:
+    - demo-webhook.demo-ns-2.svc
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Never
+  revisionHistoryLimit: 5
+  issuerRef:
+    name: demo-ca
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+# FLAG (v1.19-v1.21): cainjector now MERGES new CA certs into caBundle
+# (CAInjectorMerging: beta/on in 1.19, GA in 1.21) and applies with
+# unconditional server-side apply in 1.21 — observable caBundle contents and
+# field ownership change for annotated webhooks after upgrade.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: kdelta-demo-webhook
+  annotations:
+    cert-manager.io/inject-ca-from: demo-ns-2/demo-webhook-cert
+webhooks: []

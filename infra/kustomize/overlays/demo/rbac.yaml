@@ -1,0 +1,63 @@
+# Read-only access for kdelta on the demo cluster, scoped to what its
+# detectors and impact analysis actually consume there (helm releases,
+# cert-manager resources, workloads, and the fixture surfaces).
+#
+# SECURITY: the secrets rule exists because Helm stores releases as Secrets
+# (type helm.sh/release.v1) and RBAC cannot filter by secret type. kdelta's
+# detector must parse only helm-typed secrets and never expose other secret
+# data through the API. Production hardening options are tracked on the
+# roadmap (e.g. a mode that trades helm detection depth for no secret access).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kdelta-demo-read
+  labels:
+    app.kubernetes.io/name: kdelta
+rules:
+  # Helm release storage (see SECURITY note) + core inventory.
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get, list]
+  - apiGroups: [""]
+    resources: [namespaces, pods, services, serviceaccounts]
+    verbs: [get, list]
+  - apiGroups: [apps]
+    resources: [deployments, replicasets, statefulsets, daemonsets]
+    verbs: [get, list]
+  - apiGroups: [networking.k8s.io]
+    resources: [ingresses, ingressclasses]
+    verbs: [get, list]
+  # The demo cluster's domain resources (cert-manager fixtures).
+  - apiGroups: [cert-manager.io]
+    resources: [certificates, certificaterequests, issuers, clusterissuers]
+    verbs: [get, list]
+  - apiGroups: [acme.cert-manager.io]
+    resources: [orders, challenges]
+    verbs: [get, list]
+  # cainjector fixture (webhook caBundle impact context).
+  - apiGroups: [admissionregistration.k8s.io]
+    resources: [validatingwebhookconfigurations, mutatingwebhookconfigurations]
+    verbs: [get, list]
+  # RBAC fixture context (e.g. bindings affected by upstream role changes).
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [roles, rolebindings, clusterroles, clusterrolebindings]
+    verbs: [get, list]
+  # Installed CRDs reveal operator presence and versions.
+  - apiGroups: [apiextensions.k8s.io]
+    resources: [customresourcedefinitions]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kdelta-demo-read
+  labels:
+    app.kubernetes.io/name: kdelta
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kdelta-demo-read
+subjects:
+  - kind: ServiceAccount
+    name: kdelta
+    namespace: kdelta

@@ -1,0 +1,80 @@
+# Cluster-scoped fixtures for the kdelta demo (cert-manager v1.17.2).
+# Each FLAG comment names a changelog finding between v1.17.2 and v1.21.1 that
+# an upgrade analysis must surface for that resource.
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-root
+spec:
+  selfSigned: {}
+---
+# Root CA for the shared ClusterIssuer chain. Lives in the cert-manager
+# namespace (the cluster-resource-namespace). Deliberately a NEGATIVE CONTROL:
+# every field the 1.18+ default changes touch is explicit.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: demo-root-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: kdelta-demo-root-ca
+  secretName: demo-root-ca
+  duration: 87600h # 10y
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Never # explicit -> NOT affected by the 1.18 Never->Always default flip
+  revisionHistoryLimit: 5 # explicit -> NOT affected by the 1.18 nil->1 default
+  issuerRef:
+    name: selfsigned-root
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: demo-ca
+spec:
+  ca:
+    secretName: demo-root-ca
+---
+# FLAG (v1.18.0): ACME HTTP-01 ingress solvers create challenge Ingresses with
+# pathType: Exact after upgrade (gate ACMEHTTP01IngressPathTypeExact, on by
+# default) — incompatible with ingress-nginx 1.8.0-1.12.5 when
+# strict-validate-path-type is enabled (default in >=1.12.0; fixed 1.12.6+/1.13.2+).
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: demo@kdelta.dev
+    privateKeySecretRef:
+      name: letsencrypt-staging-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx
+---
+# FLAG (v1.19.0): http01.ingress selectors (class / ingressClassName / name)
+# became mutually exclusive. v1.17.2 accepts BOTH fields below; after upgrading,
+# any update to this ClusterIssuer is rejected by webhook validation until one
+# of them is removed.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging-legacy
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: demo@kdelta.dev
+    privateKeySecretRef:
+      name: letsencrypt-staging-legacy-account-key
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+            ingressClassName: nginx

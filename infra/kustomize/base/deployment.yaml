@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kdelta
+  labels:
+    app.kubernetes.io/name: kdelta
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kdelta
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kdelta
+    spec:
+      serviceAccountName: kdelta
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: kdelta
+          image: ghcr.io/shadiramadan/kdelta:latest
+          args: ["serve", "--bind", ":8080"]
+          ports:
+            - name: http
+              containerPort: 8080
+          # Native gRPC probes against the mounted grpc.health.v1.Health
+          # service (numeric port required; named ports are unsupported for
+          # gRPC probes, and the server speaks h2c so no TLS is involved).
+          readinessProbe:
+            grpc:
+              port: 8080
+          livenessProbe:
+            grpc:
+              port: 8080
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+              ephemeral-storage: 256Mi
+            limits:
+              memory: 256Mi
+              # Bound node-disk use: the SQLite cache, Claude CLI state, and
+              # per-run agent scratch all live on the emptyDirs below.
+              ephemeral-storage: 2Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            # Writable HOME under the read-only root filesystem: the SQLite
+            # cache lives at ~/.cache/kdelta and the Claude CLI agent runner
+            # keeps state in ~/.claude.
+            - name: home
+              mountPath: /home/nonroot
+            # Writable /tmp: the agent runner's per-run scratch directories
+            # and the Claude CLI's temp files land in the system temp dir.
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: home
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi

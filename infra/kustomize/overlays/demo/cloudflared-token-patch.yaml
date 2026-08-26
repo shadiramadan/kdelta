@@ -1,0 +1,16 @@
+# Points the cloudflared component at this overlay's ksops-generated secret.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+spec:
+  template:
+    spec:
+      containers:
+        - name: cloudflared
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: kdelta-demo-tunnel-token
+                  key: TUNNEL_TOKEN

@@ -1,0 +1,19 @@
+# Hands the Claude subscription token (from `claude setup-token`) to the
+# agent runner. Optional: without it, agentic RPCs fail with a clear
+# credentials message while everything else serves normally.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kdelta
+spec:
+  template:
+    spec:
+      containers:
+        - name: kdelta
+          env:
+            - name: CLAUDE_CODE_OAUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: kdelta-claude-token
+                  key: CLAUDE_CODE_OAUTH_TOKEN
+                  optional: true

@@ -1,0 +1,115 @@
+# demo-ns-1: a self-contained CA chain plus two app certificates — one that
+# trips the 1.17.2 -> 1.21.1 changelog findings, one negative control.
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: selfsigned
+  namespace: demo-ns-1
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: demo-ns-1-ca
+  namespace: demo-ns-1
+spec:
+  isCA: true
+  commonName: demo-ns-1-ca
+  secretName: demo-ns-1-ca
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Never
+  revisionHistoryLimit: 5
+  issuerRef:
+    name: selfsigned
+    kind: Issuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: demo-ca
+  namespace: demo-ns-1
+spec:
+  ca:
+    secretName: demo-ns-1-ca
+---
+# The "legacy" certificate: written the way a 2024-era manifest commonly was.
+# An upgrade analysis 1.17.2 -> 1.21.1 must flag all four:
+#  FLAG 1 (v1.18.0, GA v1.20): privateKey.rotationPolicy omitted — behaves as
+#         Never today, Always (non-disableable) after upgrade: the private key
+#         is regenerated at every renewal/re-issuance.
+#  FLAG 2 (v1.18.0): revisionHistoryLimit omitted — defaults to 1 after
+#         upgrade; stale CertificateRequests are garbage-collected immediately.
+#  FLAG 3 (v1.18.0): IP address in commonName — the re-issued cert moves the IP
+#         from DNS SANs to IP SANs; SAN contents change on renewal.
+#  FLAG 4 (v1.19.0 incident #8182): issuerRef omits kind/group — the reverted
+#         CRD defaults caused mass renewals; make both explicit before upgrade.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: legacy-app-tls
+  namespace: demo-ns-1
+spec:
+  secretName: legacy-app-tls
+  commonName: "10.0.0.1"
+  dnsNames:
+    - legacy.demo-ns-1.svc.cluster.local
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  issuerRef:
+    name: demo-ca
+---
+# Negative control: explicit everything. An analysis should have nothing to say
+# beyond "renewBeforePercentage predates 1.17.2 (added v1.16.0)".
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: pinned-app-tls
+  namespace: demo-ns-1
+spec:
+  secretName: pinned-app-tls
+  dnsNames:
+    - pinned.demo-ns-1.svc.cluster.local
+  renewBeforePercentage: 33
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Never
+  revisionHistoryLimit: 5
+  issuerRef:
+    name: demo-ca
+    kind: Issuer
+    group: cert-manager.io
+---
+# ingress-shim surface: cert-manager mints legacy-web-tls from the annotation.
+# The shim-created Certificate inherits runtime defaults, so the rotationPolicy
+# and revisionHistoryLimit findings apply to it too — and shim-managed certs
+# can't set those fields without --extra-certificate-annotations style tooling.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: legacy-web
+  namespace: demo-ns-1
+  annotations:
+    cert-manager.io/cluster-issuer: demo-ca
+spec:
+  rules:
+    - host: legacy-web.demo-ns-1.svc.cluster.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: legacy-web
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - legacy-web.demo-ns-1.svc.cluster.local
+      secretName: legacy-web-tls
