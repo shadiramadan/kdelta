@@ -23,14 +23,14 @@ profiles:
   # The demo overlay needs ksops (sops-encrypted tunnel token) and the
   # restricted PGP key in the invoking user's keyring.
   #
-  # Remote kind cluster: kind locates node containers through the Docker
-  # daemon (never the kubeconfig). With DOCKER_HOST=ssh://<demo-host> the
-  # build runs natively on the demo host and `kind get clusters` resolves,
-  # but skaffold's post-build kind image-load hangs over the ssh transport —
-  # run skaffold ON the demo host for the full loop, or load the image
-  # manually (docker save | ssh docker load && ssh kind load docker-image)
-  # and apply the rendered overlay. Publishing images to a registry removes
-  # the load step entirely.
+  # The overlay pins the released image by digest, pulled from the public
+  # registry, so demo deploys need no image side-loading:
+  #   skaffold deploy -p demo --images ghcr.io/shadiramadan/kdelta@<digest>
+  # Iterating on an UNRELEASED build against a remote kind cluster is the
+  # awkward case: kind locates node containers through the Docker daemon
+  # (never the kubeconfig), and skaffold's post-build kind image-load hangs
+  # over an ssh DOCKER_HOST — run skaffold ON the demo host, or side-load
+  # manually (docker save | ssh docker load && ssh kind load docker-image).
   - name: demo
     manifests:
       kustomize:

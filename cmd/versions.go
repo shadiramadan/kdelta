@@ -18,7 +18,7 @@ func newVersionsCmd() *cobra.Command {
 		Short: "List versions of a resource since the deployed one",
 		Long: `List all published versions of a detected resource between the
 deployed version and the latest, resolved deterministically from upstream
-sources (releases, chart repositories, registries) without AI.`,
+sources (GitHub releases, Helm chart repositories) without AI.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			target, err := ref.Parse(args[0])

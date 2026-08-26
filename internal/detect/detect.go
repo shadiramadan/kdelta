@@ -1,5 +1,6 @@
 // Package detect defines the detector abstraction scan is built from. Each
-// detector discovers one signal (helm releases, applications, labels, images)
+// detector discovers one signal (today Helm releases; applications, labels,
+// and images are planned)
 // and emits resources with version streams plus hierarchy edges; the registry
 // aggregates them. New resource types are supported by registering a new
 // detector.

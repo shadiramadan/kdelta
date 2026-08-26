@@ -19,8 +19,9 @@ func newChangesCmd() *cobra.Command {
 		Aliases: []string{"changelog"},
 		Short:   "Show the changelog for a resource across a version range",
 		Long: `Fetch the changelog for a detected resource between two versions.
-Uses published changelogs when available and falls back to AI extraction from
-source diffs when none exists.`,
+Release notes are fetched from the stream's change sources and structured by
+AI extraction, falling back to the verbatim notes when no model credential is
+available.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			target, err := ref.Parse(args[0])

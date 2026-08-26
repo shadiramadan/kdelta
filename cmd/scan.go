@@ -17,8 +17,9 @@ func newScanCmd() *cobra.Command {
 		Use:   "scan",
 		Short: "Detect deployed resources, their versions, and upstream links",
 		Long: `Scan the cluster (in-cluster or current kubeconfig context) with the
-registered detectors and list each detected resource, its current and latest
-version, and a link to its repository and changelog.`,
+registered detectors and list each detected resource with its deployed
+version. Use "kdelta get" for a resource's links and "kdelta versions" for
+how far behind it is.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			namespaces, err := cmd.Flags().GetStringArray("namespace")
@@ -63,7 +64,7 @@ version, and a link to its repository and changelog.`,
 		},
 	}
 	scanCmd.Flags().StringArrayP("namespace", "n", nil, "namespace to scan (repeatable; default: all)")
-	scanCmd.Flags().StringP("selector", "l", "", "label selector filtering candidate objects")
+	scanCmd.Flags().StringP("selector", "l", "", "label selector filtering candidate objects (not yet applied by any detector)")
 	scanCmd.Flags().StringArray("detector", nil, "detector to run (repeatable; default: all)")
 	addOutputFlag(scanCmd)
 	return scanCmd
