@@ -57,7 +57,7 @@ jobs:
           artifact-name: sbom.spdx.json
       # Fail the release on a high/critical CVE in the SBOM (grype auto-updates
       # its vuln DB). Same check as `task scan:cve` locally.
-      - uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e # v6
+      - uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7.4.0
         with:
           sbom: sbom.spdx.json
           fail-build: true
