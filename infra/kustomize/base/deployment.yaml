@@ -29,12 +29,21 @@ spec:
           # Native gRPC probes against the mounted grpc.health.v1.Health
           # service (numeric port required; named ports are unsupported for
           # gRPC probes, and the server speaks h2c so no TLS is involved).
+          # Timeouts are generous: agentic impact runs spawn a model
+          # subprocess in this pod, and under that load the default 1s
+          # connect timeout liveness-killed healthy servers mid-assessment.
           readinessProbe:
             grpc:
               port: 8080
+            timeoutSeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
           livenessProbe:
             grpc:
               port: 8080
+            timeoutSeconds: 5
+            periodSeconds: 15
+            failureThreshold: 4
           resources:
             requests:
               cpu: 50m
