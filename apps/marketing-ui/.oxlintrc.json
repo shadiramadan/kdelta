@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // `plugins` replaces oxlint's defaults, so the default set (eslint,
+  // typescript, unicorn, oxc) is re-listed alongside the framework plugins.
+  "plugins": [
+    "eslint",
+    "typescript",
+    "unicorn",
+    "oxc",
+    "react",
+    "nextjs",
+    "jsx-a11y",
+    "import"
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    // Next/React use the automatic JSX runtime; React never needs importing.
+    "react/react-in-jsx-scope": "off",
+    // Global stylesheets are loaded as side-effect imports in the app router.
+    "import/no-unassigned-import": ["warn", { "allow": ["**/*.css"] }]
+  },
+  "ignorePatterns": [".next", "out", "next-env.d.ts"]
+}

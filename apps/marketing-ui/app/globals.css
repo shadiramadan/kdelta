@@ -1,0 +1,5 @@
+@import "tailwindcss";
+@import "@kdelta/theme";
+
+/* Tailwind's content scan only sees this app; include the shared components. */
+@source "../../../packages/ui/src";
