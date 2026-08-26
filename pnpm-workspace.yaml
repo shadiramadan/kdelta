@@ -4,3 +4,9 @@ packages:
 
 onlyBuiltDependencies:
   - unrs-resolver
+
+# Supply-chain gate: never resolve package versions younger than 24h, so a
+# compromised release gets caught by the ecosystem before it can land here.
+# Explicit (rather than pnpm 11's stricter default) so local installs, CI,
+# and dependabot's updater all enforce the same policy.
+minimumReleaseAge: 1440
