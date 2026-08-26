@@ -22,8 +22,8 @@ patches:
   - path: agent-effort-patch.yaml
 
 # The demo runs released images pulled from the public registry, pinned by
-# digest (v0.2.0) so the deployment is reproducible and side-loading dev
+# digest (v0.3.0) so the deployment is reproducible and side-loading dev
 # builds is no longer part of the loop.
 images:
   - name: ghcr.io/shadiramadan/kdelta
-    digest: sha256:dceff927b30a58fa39f1e6cafd93e5e6e8f77985fa693e5604586f8f6bab0595
+    digest: sha256:6ff5503460ab441bea1cc25e546ca17afe8a8432906d4415e6efc64f03bae4b5
