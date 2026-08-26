@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/shadiramadan/kdelta/compare/v0.2.0...v0.3.0) (2026-08-26)
+
+
+### Features
+
+* **agent:** make reasoning effort configurable via KDELTA_EFFORT ([05d67b2](https://github.com/shadiramadan/kdelta/commit/05d67b272163bc59004f1ce474922dc9f8d5fe5e))
+
+
+### Bug Fixes
+
+* **infra:** give the gRPC probes agentic-load headroom ([154b7cf](https://github.com/shadiramadan/kdelta/commit/154b7cf0e63c0171cee549fd46ea30ecd89296cc))
+
 ## [0.2.0](https://github.com/shadiramadan/kdelta/compare/v0.1.1...v0.2.0) (2026-08-26)
 
 
