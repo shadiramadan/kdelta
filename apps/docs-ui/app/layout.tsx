@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "kdelta",
+  title: "kdelta — Kubernetes upgrade impact analysis",
   description:
-    "Detect deployed Kubernetes resources, resolve their versions, and assess the impact of upgrading them.",
+    "What's deployed, what version is it, what changed upstream, and what breaks if you upgrade it. One binary: CLI, API, and web UI.",
 };
 
 export default function RootLayout({
