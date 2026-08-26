@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "eslint",
+    "typescript",
+    "unicorn",
+    "oxc",
+    "react",
+    "jsx-a11y",
+    "import"
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "react/react-in-jsx-scope": "off"
+  },
+  // Components vendored verbatim via `shadcn add` stay diffable against the
+  // upstream registry; exempt them from rules their canonical source trips.
+  "overrides": [
+    {
+      "files": ["src/components/sidebar.tsx", "src/hooks/use-mobile.ts"],
+      "rules": {
+        "react/set-state-in-effect": "off",
+        "react/purity": "off",
+        "no-shadow": "off"
+      }
+    }
+  ],
+  "ignorePatterns": []
+}
