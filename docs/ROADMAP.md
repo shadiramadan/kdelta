@@ -116,9 +116,9 @@ New detectors follow the path in
   changelog.
 - Adopt a native Go Agent SDK for the `agent.Runner` CLI backend if/when
   Anthropic ships one, replacing the `claude -p` subprocess.
-- Structured harness outputs: move extraction to `--output-format json` +
-  `--json-schema` (schema-enforced `structured_output`) instead of prompt
-  contracts.
+- Structured harness outputs: add `--json-schema` (schema-enforced
+  `structured_output`) to the extraction invocation — it already runs
+  `--output-format json` — replacing the prompt-contract JSON parsing.
 - Run agentic flows in a Kubernetes agent sandbox
   ([kubernetes-sigs/agent-sandbox](https://agent-sandbox.sigs.k8s.io)):
   isolate model-driven gathering in
@@ -252,8 +252,8 @@ deployment:
   common upgrade ranges.
 - Dataset profiles supplying chart repository URLs, consulted ahead of the
   Artifact Hub lookup in `internal/resolve`.
-- AI contribution guidelines for dataset entries (documented in CONTRIBUTING.md).
-- CI validation for dataset contributions.
+- CI validation for dataset contributions, enforcing the AI contribution
+  guidelines already documented in CONTRIBUTING.md.
 
 ## Docs site
 
@@ -263,10 +263,10 @@ deployment:
 
 ## Infra & deployment
 
-- Publish the container image to GitHub Packages so the demo cluster pulls
-  released images instead of side-loaded dev builds, and pin the deployment to
-  an image digest (`@sha256:…`) rather than the mutable `:latest` tag once a
-  registry is in use.
+- Automate bumping the demo overlay's pinned image digest on each release
+  (today `infra/kustomize/overlays/demo/kustomization.yaml` is edited by
+  hand; a publish-workflow step or bot PR could rewrite it with the new
+  release digest).
 - Multi-arch (amd64 + arm64) image builds — the demo node is amd64 while dev
   machines are arm64.
 - Smoke-test the skaffold + kind loop in CI.

@@ -2,7 +2,6 @@
 
 [![CI](https://github.com/shadiramadan/kdelta/actions/workflows/ci.yaml/badge.svg)](https://github.com/shadiramadan/kdelta/actions/workflows/ci.yaml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/shadiramadan/kdelta.svg)](https://pkg.go.dev/github.com/shadiramadan/kdelta)
-[![Go Report Card](https://goreportcard.com/badge/github.com/shadiramadan/kdelta)](https://goreportcard.com/report/github.com/shadiramadan/kdelta)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](apps/app-ui)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE.md)
 [![GitHub Discussions](https://img.shields.io/github/discussions/shadiramadan/kdelta?logo=github)](https://github.com/shadiramadan/kdelta/discussions)
@@ -26,9 +25,10 @@ against an in-process server by default, or a remote one with `--server` — sam
 code path either way. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 > **Status: early development.** The `scan → versions → changes → impact`
-> pipeline runs end to end (helm detector, live GitHub version/changelog
-> resolution, AI changelog extraction, and agentic cluster-impact assessment),
-> with a matching web UI. [docs/ROADMAP.md](docs/ROADMAP.md) tracks what's next.
+> pipeline runs end to end (helm detector, Artifact Hub chart-repository
+> resolution, live GitHub and Helm-repository version/changelog fetching, AI
+> changelog extraction, and agentic cluster-impact assessment), with a
+> matching web UI. [docs/ROADMAP.md](docs/ROADMAP.md) tracks what's next.
 
 ## Contents
 

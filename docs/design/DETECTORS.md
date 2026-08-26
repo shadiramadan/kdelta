@@ -123,7 +123,8 @@ the cluster actually relates things.
 ## 4. Wire version and change sources
 
 A resource has one or more independently-updatable **version streams**. Helm
-emits two: `chart` and `app`.
+emits up to two: `chart` always, and `app` when the chart metadata records an
+appVersion.
 
 ```mermaid
 flowchart TB
@@ -184,7 +185,8 @@ One line in `internal/client/client.go`:
 
 ```go
 func Detectors() *detect.Registry {
-    return detect.NewRegistry(helmdetect.New(), argocddetect.New())
+    // Today this registers only helmdetect.New(); append yours.
+    return detect.NewRegistry(helmdetect.New(), yourdetect.New())
 }
 ```
 
@@ -198,8 +200,9 @@ role in `infra/kustomize/overlays/` and note the sensitivity.
 Follow `internal/detect/helm/helm_test.go`: seed a fake clientset with objects
 stored exactly as the real system stores them, run `Detect`, and assert on the
 emitted domain model — refs, streams, sources, conditions, backing objects —
-rather than on internal helpers. Cover the applicability path
-(`ErrNotApplicable`) and namespace scoping.
+rather than on internal helpers. Follow it for the fake-clientset pattern and
+namespace scoping; if your detector has an applicability path (the Helm one
+does not — the Secret type always exists), also cover `ErrNotApplicable`.
 
 Run `task test`; the pre-commit gate is `task precommit`.
 

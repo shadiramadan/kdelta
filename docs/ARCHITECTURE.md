@@ -169,8 +169,9 @@ accepted: a tenant who copies a real chart's metadata verbatim gets their
 release attributed to the real repository (the fetched data is then the
 legitimate repository's — the harm is operator confusion about a workload that
 tenant already controls); a repository that mirrors a real index byte-for-byte
-can win resolution only if the real repository is absent from Artifact Hub's
-exact-name results and it strictly leads the trust ordering; and a
+can win resolution either as the sole verified match when the real repository
+is absent from Artifact Hub's exact-name results, or — when both are listed —
+only by strictly leading the official/verified/production-use trust ordering; and a
 resolved-but-hostile repository controls only its own version list
 (size-capped, typed-parsed, no free text reaches prompts). When in doubt at
 any step, the resolver leaves the package unresolved — the pre-resolution
@@ -325,19 +326,21 @@ A pnpm + Turborepo monorepo:
 - `packages/api` — generated TypeScript client.
 - `packages/theme` — Tailwind v4 CSS-first design tokens (shadcn-compatible
   variables), imported by both apps.
-- `packages/ui` — shared shadcn/ui components (Button, Card to start), used by
-  both apps.
+- `packages/ui` — shared shadcn/ui components (button, card, table, tabs,
+  sidebar, and friends), used by both apps.
 
 In dev, the Next dev server proxies `/rpc/*` to the Go server so there is no CORS
 and the same relative URLs work in dev and when embedded.
 
 ## Deployment
 
-- Multi-stage Dockerfile on Chainguard images (node → go → static), versioned
+- Multi-stage Dockerfile on Chainguard images (node → go → wolfi-base — the
+  runtime is glibc wolfi-base because it ships the claude CLI; the kdelta
+  binary itself stays static), versioned
   by Go's built-in VCS stamping.
 - `infra/kustomize` deploys the server; the reusable `cloudflared` component +
-  demo overlay expose `demo.kdelta.dev` through a Cloudflare tunnel, with the
-  token sops-encrypted (PGP, ksops dotenv secrets under `secrets/<class>/`).
+  demo overlay expose `demo.kdelta.dev` through a Cloudflare tunnel, gated by
+  Cloudflare Access at the edge, with the token sops-encrypted (PGP, ksops dotenv secrets under `secrets/<class>/`).
 - skaffold + kind for the local cluster loop.
 
 ### Cluster access model
@@ -357,8 +360,7 @@ Taskfile targets are the single implementation of build/lint/test — CI's verif
 pipeline calls the same targets contributors run locally. Release publishing
 uses the well-known actions for docker building, SBOMs, and signing (with
 `task docker:build` / `task sbom` / `task sign` as the local equivalents).
-Releases are cut by release-please; images go to GitHub Packages with syft
-SBOMs, cosign signatures, and build provenance attestations. A rendered k8s
-manifest ships as a release artifact. Releases are cut by release-please with
-a repository-scoped GitHub App token, so a published release triggers the
-publish workflow automatically.
+Releases are cut by release-please with a repository-scoped GitHub App token
+(so a published release triggers the publish workflow automatically); images
+go to GitHub Packages with syft SBOMs, cosign signatures, and build
+provenance attestations. A rendered k8s manifest ships as a release artifact.

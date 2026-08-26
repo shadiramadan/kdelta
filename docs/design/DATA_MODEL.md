@@ -45,8 +45,10 @@ A resource does not have *a* version; it has independently-updatable
 application, each container image, a tracked git revision. Each stream carries
 its own current value, an optional desired-state `constraint` (a target
 revision or version range the cluster tracks, distinct from what is resolved),
-a `VersioningScheme`, one `VersionSource`, and an ordered `ChangeSource`
-fallback chain. The first stream on a resource is its primary one.
+a `VersioningScheme`, one `VersionSource`, an ordered `ChangeSource`
+fallback chain, and a `source_provenance` recording how the version source
+was determined (detector-observed vs resolved from a public index) — distinct
+from the deployed value's own provenance. The first stream on a resource is its primary one.
 
 Ordering is deliberately separated from fetching: sources return unordered
 strings; the scheme alone defines parsing, ordering, and stability. Git
@@ -113,9 +115,11 @@ the whole set.
 The full pipeline is implemented. `Echo` remains only as a liveness
 placeholder. What is still unimplemented is narrower: version sources other
 than GitHub releases and Helm repository indexes (git tags, OCI registries,
-container tags) return `Unimplemented` from `ListVersions`, and a stream whose
-upstream could not be resolved reports `FailedPrecondition` naming the
-streams that can be resolved instead.
+container tags) return `Unimplemented` from `ListVersions`; change sources
+other than GitHub release notes (changelog files, chart annotations, URL
+templates, migration guides, source-diff generation) make `GetChanges` report
+`FailedPrecondition`; and a stream whose upstream could not be resolved
+reports `FailedPrecondition` naming the streams that can be resolved instead.
 
 ## Validation philosophy
 
