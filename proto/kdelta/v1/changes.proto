@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package kdelta.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+import "kdelta/v1/common.proto";
+import "kdelta/v1/version.proto";
+
+// ChangeSource describes one place change information for a stream lives.
+// A stream carries an ordered list: earlier entries are preferred, later ones
+// are fallbacks — typically ending with source diffs, which require
+// generation rather than extraction.
+message ChangeSource {
+  oneof source {
+    option (buf.validate.oneof).required = true;
+
+    ReleaseNotesSource release_notes = 1;
+    ChangelogFileSource changelog_file = 2;
+    UrlTemplateSource url_template = 3;
+    ChartAnnotationsSource chart_annotations = 4;
+    MigrationGuideSource migration_guide = 5;
+    GitDiffSource git_diff = 6;
+  }
+}
+
+// ReleaseNotesSource reads notes published alongside releases in the
+// repository's forge.
+message ReleaseNotesSource {
+  string repository_url = 1 [(buf.validate.field).string.uri = true];
+  // Optional anchored regex a release tag must match.
+  string tag_pattern = 2;
+}
+
+// ChangelogFileSource reads a changelog file kept in the repository, with one
+// heading per version.
+message ChangelogFileSource {
+  string repository_url = 1 [(buf.validate.field).string.uri = true];
+  // Path within the repository ("CHANGELOG.md").
+  string path = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+// UrlTemplateSource fetches a per-version page. The template may use
+// {version}, {major}, and {minor} placeholders.
+message UrlTemplateSource {
+  string template = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// ChartAnnotationsSource reads structured per-version changes from chart
+// metadata annotations.
+message ChartAnnotationsSource {
+  // Annotation key carrying the change list.
+  string annotation = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// MigrationGuideSource points at upgrade documentation that needs extraction.
+message MigrationGuideSource {
+  string url = 1 [(buf.validate.field).string.uri = true];
+}
+
+// GitDiffSource is the last resort: change information is generated from the
+// source diff between two versions. Output carries AI_GENERATED provenance.
+message GitDiffSource {
+  string repository_url = 1 [(buf.validate.field).string.uri = true];
+}
+
+// ChangeType classifies a single change. The first six values follow the
+// conventional changelog vocabulary; the remainder capture upgrade-relevant
+// distinctions that deserve first-class treatment.
+enum ChangeType {
+  CHANGE_TYPE_UNSPECIFIED = 0;
+  CHANGE_TYPE_ADDED = 1;
+  CHANGE_TYPE_CHANGED = 2;
+  CHANGE_TYPE_FIXED = 3;
+  CHANGE_TYPE_SECURITY = 4;
+  CHANGE_TYPE_DEPRECATED = 5;
+  CHANGE_TYPE_REMOVED = 6;
+  // Explicitly breaking for consumers.
+  CHANGE_TYPE_BREAKING = 7;
+  // A default or runtime behavior flips without any spec change — the
+  // archetypal silent-impact change.
+  CHANGE_TYPE_DEFAULT_CHANGED = 8;
+  // The upgrade requires a manual step.
+  CHANGE_TYPE_MIGRATION_REQUIRED = 9;
+  CHANGE_TYPE_OTHER = 15;
+}
+
+// Change is one normalized change entry — the unit the impact stage consumes,
+// whatever source it was extracted from.
+message Change {
+  ChangeType type = 1;
+  string summary = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 1024
+  }];
+  string detail = 3 [(buf.validate.field).string.max_len = 16384];
+  // Concrete configuration surfaces the change touches: resource field paths,
+  // flags, value paths ("spec.privateKey.rotationPolicy",
+  // "--feature-gates=Example"). The join key for impact analysis.
+  repeated string affected_paths = 4;
+  repeated Link references = 5;
+  // 1.0 for verbatim upstream statements, lower for model-derived entries.
+  float confidence = 6 [(buf.validate.field).float = {
+    gte: 0.0
+    lte: 1.0
+  }];
+}
+
+// VersionChanges groups the changes shipped in one version.
+message VersionChanges {
+  string version = 1 [(buf.validate.field).string.min_len = 1];
+  google.protobuf.Timestamp released_at = 2;
+  repeated Change changes = 3;
+  Provenance provenance = 4;
+}
+
+// MigrationGuide is upgrade documentation with the range of upgrades it
+// applies to and, once extracted, the essentials.
+message MigrationGuide {
+  Link link = 1;
+  // Upgrades this guide applies to (e.g. any upgrade crossing a version).
+  VersionRange applies = 2;
+  string summary = 3;
+  Provenance provenance = 4;
+}
+
+// ChangeSet is every known change for one package across one concrete version
+// range — the output of the changes stage and the evidence base for impact.
+// It is keyed by PackageKey, not by resource: change data is
+// cluster-independent and cacheable.
+message ChangeSet {
+  PackageKey package = 1;
+  VersionKind kind = 2;
+  string from_version = 3 [(buf.validate.field).string.min_len = 1];
+  string to_version = 4 [(buf.validate.field).string.min_len = 1];
+  // One entry per intermediate version, ordered oldest to newest.
+  repeated VersionChanges versions = 5;
+  repeated MigrationGuide migration_guides = 6;
+}

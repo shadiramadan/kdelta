@@ -1,0 +1,138 @@
+syntax = "proto3";
+
+package kdelta.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+import "kdelta/v1/changes.proto";
+import "kdelta/v1/common.proto";
+import "kdelta/v1/version.proto";
+
+// ResourceRef uniquely identifies a detected resource within a cluster.
+// Canonical string form: "<detector>:<namespace>/<name>"
+// ("helm:cert-manager/cert-manager"); cluster-scoped resources omit the
+// namespace segment ("<detector>:<name>").
+message ResourceRef {
+  string detector = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 63
+    pattern: "^[a-z][a-z0-9-]*$"
+  }];
+  // Empty for cluster-scoped resources. RFC 1123 label.
+  string namespace = 2 [
+    (buf.validate.field).string = {
+      max_len: 63
+      pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+    },
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE
+  ];
+  // RFC 1123 subdomain.
+  string name = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 253
+    pattern: "^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$"
+  }];
+}
+
+// KubernetesObjectRef points at a cluster object backing a detected resource
+// (a release secret, a workload, an application object).
+message KubernetesObjectRef {
+  // "apps/v1", "argoproj.io/v1alpha1".
+  string api_version = 1 [(buf.validate.field).string.min_len = 1];
+  string kind = 2 [(buf.validate.field).string.min_len = 1];
+  // Empty for cluster-scoped objects.
+  string namespace = 3;
+  string name = 4 [(buf.validate.field).string.min_len = 1];
+  // Object UID: survives renames, distinguishes recreations.
+  string uid = 5;
+}
+
+// Condition reports one aspect of a resource's observed state.
+message Condition {
+  // Condition type ("Ready", "Synced").
+  string type = 1 [(buf.validate.field).string.min_len = 1];
+  ConditionStatus status = 2;
+  string reason = 3;
+  string message = 4;
+  google.protobuf.Timestamp last_transition_time = 5;
+}
+
+// ConditionStatus mirrors the conventional three-valued condition state.
+enum ConditionStatus {
+  CONDITION_STATUS_UNSPECIFIED = 0;
+  CONDITION_STATUS_TRUE = 1;
+  CONDITION_STATUS_FALSE = 2;
+  CONDITION_STATUS_UNKNOWN = 3;
+}
+
+// DetectedVersion is a version value as read from the cluster.
+message DetectedVersion {
+  string value = 1 [(buf.validate.field).string.min_len = 1];
+  // Content digest when observed (image digests).
+  string digest = 2;
+  Provenance provenance = 3;
+}
+
+// VersionStream is one independently-updatable version axis of a resource: a
+// chart revision, the packaged application, each container image. Streams
+// carry their own current value, the recipe to enumerate available versions,
+// and the recipes to find change information.
+message VersionStream {
+  // Stream identifier, unique within the resource ("chart", "app",
+  // "image:redis").
+  string id = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 253
+  }];
+  VersionKind kind = 2;
+  DetectedVersion current = 3;
+  // Desired-state constraint when the cluster records one (a target revision
+  // or version range the resource tracks), distinct from the resolved
+  // current value.
+  string constraint = 4;
+  VersioningScheme scheme = 5;
+  VersionSource source = 6;
+  // Ordered by preference; later entries are fallbacks.
+  repeated ChangeSource changes = 7;
+  // How the stream's version source was determined: observed by a detector,
+  // resolved from a public index, or supplied by a dataset or user override.
+  // Distinct from current.provenance, which covers the deployed value.
+  Provenance source_provenance = 8;
+}
+
+// Resource is one detected deployed thing: identity, upstream linkage, and
+// its version streams. The first stream is the primary one — the version
+// you'd upgrade.
+message Resource {
+  ResourceRef ref = 1 [(buf.validate.field).required = true];
+  string display_name = 2;
+  // Upstream identity; unset until resolved (detectors cannot always recover
+  // where an artifact came from).
+  PackageKey upstream = 3;
+  repeated Link links = 4;
+  repeated VersionStream streams = 5;
+  // Cluster objects backing this resource.
+  repeated KubernetesObjectRef objects = 6;
+  // Selected labels carried through from the cluster.
+  map<string, string> labels = 7;
+  repeated Condition conditions = 8;
+  Provenance provenance = 9;
+}
+
+// ResourceEdge relates two detected resources in the hierarchy.
+message ResourceEdge {
+  ResourceRef parent = 1 [(buf.validate.field).required = true];
+  ResourceRef child = 2 [(buf.validate.field).required = true];
+  EdgeKind kind = 3;
+}
+
+// EdgeKind classifies a hierarchy edge.
+enum EdgeKind {
+  EDGE_KIND_UNSPECIFIED = 0;
+  // Parent manages the child's lifecycle (a release owns its workloads).
+  EDGE_KIND_OWNS = 1;
+  // Parent requires the child but does not manage it.
+  EDGE_KIND_DEPENDS_ON = 2;
+  // Child is a component of a larger logical application.
+  EDGE_KIND_PART_OF = 3;
+}

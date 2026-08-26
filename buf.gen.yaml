@@ -1,0 +1,26 @@
+version: v2
+clean: true
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/shadiramadan/kdelta/gen
+  disable:
+    - file_option: go_package
+      module: buf.build/bufbuild/protovalidate
+plugins:
+  # Go message types + Connect handlers/clients. Pinned via go.mod tool directives.
+  - local: [go, tool, protoc-gen-go]
+    out: gen
+    opt: paths=source_relative
+  - local: [go, tool, protoc-gen-connect-go]
+    out: gen
+    opt: paths=source_relative
+  # TypeScript (protobuf-es v2 emits message and service schemas). Pinned via pnpm.
+  # include_imports so the buf/validate schemas our protos import exist in TS too.
+  - local: protoc-gen-es
+    out: packages/api/src/gen
+    opt: target=ts
+    include_imports: true
+inputs:
+  - directory: proto

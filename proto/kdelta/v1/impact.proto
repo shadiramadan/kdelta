@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+package kdelta.v1;
+
+import "buf/validate/validate.proto";
+import "kdelta/v1/changes.proto";
+import "kdelta/v1/common.proto";
+import "kdelta/v1/resource.proto";
+
+// ImpactSeverity grades how much a finding (or an assessment overall) should
+// worry the operator.
+enum ImpactSeverity {
+  IMPACT_SEVERITY_UNSPECIFIED = 0;
+  IMPACT_SEVERITY_NONE = 1;
+  IMPACT_SEVERITY_LOW = 2;
+  IMPACT_SEVERITY_MEDIUM = 3;
+  IMPACT_SEVERITY_HIGH = 4;
+  IMPACT_SEVERITY_CRITICAL = 5;
+}
+
+// ActionKind classifies a recommended action.
+enum ActionKind {
+  ACTION_KIND_UNSPECIFIED = 0;
+  // Change configuration (set a field explicitly, adjust values).
+  ACTION_KIND_CONFIG_CHANGE = 1;
+  // Perform a documented manual migration step.
+  ACTION_KIND_MANUAL_STEP = 2;
+  // Verify a property before or after upgrading.
+  ACTION_KIND_VERIFICATION = 3;
+  // Watch a signal after upgrading.
+  ACTION_KIND_MONITORING = 4;
+  // Upgrade or adjust another resource first.
+  ACTION_KIND_RELATED_UPGRADE = 5;
+  ACTION_KIND_OTHER = 15;
+}
+
+// ChangeEvidence ties a finding back to the change(s) that drive it, with the
+// concrete surfaces that matched in this cluster.
+message ChangeEvidence {
+  // Version that introduced the change.
+  string version = 1 [(buf.validate.field).string.min_len = 1];
+  ChangeType type = 2;
+  string summary = 3 [(buf.validate.field).string.min_len = 1];
+  // Configuration surfaces from the change that were actually matched against
+  // this cluster's resources.
+  repeated string affected_paths = 4;
+  repeated Link references = 5;
+}
+
+// RecommendedAction is one concrete thing the operator should do.
+message RecommendedAction {
+  ActionKind kind = 1;
+  string description = 2 [(buf.validate.field).string.min_len = 1];
+  // Optional runnable hint.
+  string command = 3;
+  // Whether the action must happen before the upgrade (vs. after).
+  bool before_upgrade = 4;
+}
+
+// ImpactFinding is one identified consequence of the proposed upgrade for one
+// resource.
+message ImpactFinding {
+  ImpactSeverity severity = 1;
+  // Estimated probability the consequence materializes, 0 to 1.
+  float likelihood = 2 [(buf.validate.field).float = {
+    gte: 0.0
+    lte: 1.0
+  }];
+  // The resource this finding is about; may be the upgrade target itself or
+  // anything else in the cluster.
+  ResourceRef affected = 3 [(buf.validate.field).required = true];
+  string title = 4 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 256
+  }];
+  // Why these changes affect this resource, in operator terms.
+  string rationale = 5;
+  repeated ChangeEvidence evidence = 6;
+  repeated RecommendedAction actions = 7;
+}
+
+// InformationGap names data the analysis needed but did not have — the hook
+// for agentic escalation (gather, then re-assess) and for honest confidence.
+message InformationGap {
+  string description = 1 [(buf.validate.field).string.min_len = 1];
+  // How the gap could be closed.
+  string suggestion = 2;
+  repeated ResourceRef refs = 3;
+}
+
+// ResourceImpact is the per-resource rollup the CLI and UI lead with: every
+// cluster resource the upgrade touches, with an operator-facing explanation
+// of what the upgrade means for it. Findings carry the evidence; this is the
+// presentation layer over them. (An alternative grouping — by cause, with
+// resources inside each — is derivable from findings' evidence.)
+message ResourceImpact {
+  ResourceRef ref = 1 [(buf.validate.field).required = true];
+  // Cluster objects behind the resource, for kubectl-level context.
+  repeated KubernetesObjectRef objects = 2;
+  ImpactSeverity severity = 3;
+  // What this upgrade means for this resource, in operator terms.
+  string explanation = 4 [(buf.validate.field).string.min_len = 1];
+}
+
+// ImpactAssessment is the result of analyzing one proposed stream upgrade
+// against everything else detected in the cluster.
+message ImpactAssessment {
+  ResourceRef target = 1 [(buf.validate.field).required = true];
+  string stream_id = 2 [(buf.validate.field).string.min_len = 1];
+  string from_version = 3 [(buf.validate.field).string.min_len = 1];
+  string to_version = 4 [(buf.validate.field).string.min_len = 1];
+  // Highest severity across findings.
+  ImpactSeverity overall_severity = 5;
+  // One-paragraph narrative for the operator.
+  string summary = 6;
+  // Per-resource rollup, one entry per touched resource, most severe first.
+  repeated ResourceImpact resources = 7;
+  repeated ImpactFinding findings = 8;
+  repeated InformationGap gaps = 9;
+  Provenance provenance = 10;
+}

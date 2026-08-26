@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package kdelta.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// Link is a labeled URL to upstream material.
+message Link {
+  LinkKind kind = 1;
+  string url = 2 [(buf.validate.field).string.uri = true];
+  // Optional human label ("Release notes", "Upgrade guide").
+  string title = 3 [(buf.validate.field).string.max_len = 256];
+}
+
+// LinkKind classifies what a link points at.
+enum LinkKind {
+  LINK_KIND_UNSPECIFIED = 0;
+  LINK_KIND_SOURCE = 1;
+  LINK_KIND_HOMEPAGE = 2;
+  LINK_KIND_RELEASES = 3;
+  LINK_KIND_CHANGELOG = 4;
+  LINK_KIND_DOCUMENTATION = 5;
+  LINK_KIND_MIGRATION_GUIDE = 6;
+  // A supporting reference: pull request, issue, or advisory.
+  LINK_KIND_REFERENCE = 7;
+  LINK_KIND_OTHER = 15;
+}
+
+// PackageKey identifies an upstream project or artifact independently of any
+// cluster. It is the cache and community-dataset key: versions and changelogs
+// attach to a PackageKey, never to a cluster resource.
+message PackageKey {
+  // Distribution system the package is published through
+  // ("helm", "oci", "github", "golang", ...).
+  string system = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 63
+    pattern: "^[a-z][a-z0-9-]*$"
+  }];
+  // Package name within the system; may contain path segments
+  // ("cert-manager", "jetstack/cert-manager").
+  string name = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 512
+  }];
+  // Registry or repository URL that disambiguates same-named packages from
+  // different distribution points. Empty when not yet resolved (e.g. an
+  // installed release that does not record where it came from).
+  string registry_url = 3 [
+    (buf.validate.field).string.uri = true,
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE
+  ];
+}
+
+// Provenance records how a piece of data was produced so downstream stages
+// can weigh trust; an impact finding inherits the weakest link in its chain.
+message Provenance {
+  ProvenanceMethod method = 1;
+  // Where the data was read from, when applicable.
+  string source_url = 2 [
+    (buf.validate.field).string.uri = true,
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE
+  ];
+  // Detector that observed the data (scan-time provenance only).
+  string detector = 3;
+  // Model identifier for AI_EXTRACTED / AI_GENERATED provenance.
+  string model = 4;
+  google.protobuf.Timestamp collected_at = 5;
+}
+
+// ProvenanceMethod is ordered roughly by decreasing verbatim-ness.
+enum ProvenanceMethod {
+  PROVENANCE_METHOD_UNSPECIFIED = 0;
+  // Read directly from the cluster.
+  PROVENANCE_METHOD_OBSERVED = 1;
+  // Fetched verbatim from an upstream source.
+  PROVENANCE_METHOD_FETCHED = 2;
+  // Structured by a model from fetched material.
+  PROVENANCE_METHOD_AI_EXTRACTED = 3;
+  // Written by a model (e.g. a changelog generated from source diffs).
+  PROVENANCE_METHOD_AI_GENERATED = 4;
+  // Supplied by the community dataset.
+  PROVENANCE_METHOD_DATASET = 5;
+  PROVENANCE_METHOD_USER_PROVIDED = 6;
+}

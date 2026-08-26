@@ -1,0 +1,166 @@
+syntax = "proto3";
+
+package kdelta.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+import "kdelta/v1/changes.proto";
+import "kdelta/v1/impact.proto";
+import "kdelta/v1/resource.proto";
+import "kdelta/v1/version.proto";
+
+// KdeltaService is the API surface shared by the CLI, the web UI, and
+// (eventually) MCP. Scan/ListResources/GetResource/ListVersions are fast and
+// unary; GetChanges and AssessImpact can be slow and agentic, so they stream
+// progress before delivering their result.
+service KdeltaService {
+  // Echo round-trips a message: the liveness placeholder while the rest of
+  // the surface is implemented. Retired once Scan lands.
+  rpc Echo(EchoRequest) returns (EchoResponse) {}
+
+  // Scan detects deployed resources, their version streams, and hierarchy.
+  rpc Scan(ScanRequest) returns (ScanResponse) {}
+
+  // ListResources pages through the most recent scan's resources.
+  rpc ListResources(ListResourcesRequest) returns (ListResourcesResponse) {}
+
+  // GetResource returns one resource with its hierarchy edges.
+  rpc GetResource(GetResourceRequest) returns (GetResourceResponse) {}
+
+  // ListVersions enumerates a stream's available versions from its source,
+  // deterministically (no AI).
+  rpc ListVersions(ListVersionsRequest) returns (ListVersionsResponse) {}
+
+  // GetChanges resolves the change information for a stream's version range,
+  // walking the stream's change sources and escalating to extraction or
+  // generation when needed.
+  rpc GetChanges(GetChangesRequest) returns (stream GetChangesResponse) {}
+
+  // AssessImpact analyzes a proposed upgrade against the cluster inventory.
+  rpc AssessImpact(AssessImpactRequest) returns (stream AssessImpactResponse) {}
+}
+
+message EchoRequest {
+  string message = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 4096
+  }];
+}
+
+message EchoResponse {
+  string message = 1;
+}
+
+message ScanRequest {
+  // Namespaces to scan; empty scans all the context allows.
+  repeated string namespaces = 1 [
+    (buf.validate.field).repeated.max_items = 256,
+    (buf.validate.field).repeated.items.string.max_len = 63
+  ];
+  // Label selector expression filtering candidate objects.
+  string selector = 2 [(buf.validate.field).string.max_len = 2048];
+  // Detectors to run; empty runs all registered detectors.
+  repeated string detectors = 3 [
+    (buf.validate.field).repeated.max_items = 64,
+    (buf.validate.field).repeated.items.string.max_len = 128
+  ];
+}
+
+message ScanResponse {
+  repeated Resource resources = 1;
+  repeated ResourceEdge edges = 2;
+  google.protobuf.Timestamp scanned_at = 3;
+}
+
+message ListResourcesRequest {
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 500
+  }];
+  string page_token = 2 [(buf.validate.field).string.max_len = 2048];
+  // Label selector filtering by resource labels.
+  string selector = 3 [(buf.validate.field).string.max_len = 2048];
+}
+
+message ListResourcesResponse {
+  repeated Resource resources = 1;
+  // Empty when there are no further pages.
+  string next_page_token = 2;
+}
+
+message GetResourceRequest {
+  ResourceRef ref = 1 [(buf.validate.field).required = true];
+}
+
+message GetResourceResponse {
+  Resource resource = 1;
+  // Edges touching this resource.
+  repeated ResourceEdge edges = 2;
+}
+
+message ListVersionsRequest {
+  ResourceRef ref = 1 [(buf.validate.field).required = true];
+  // Stream to enumerate; empty selects the primary stream.
+  string stream_id = 2;
+}
+
+message ListVersionsResponse {
+  // Scheme-ordered, from the current version to the latest.
+  repeated Version versions = 1;
+  string current = 2;
+  string latest = 3;
+  // Number of versions between current and latest.
+  int32 versions_behind = 4;
+}
+
+message GetChangesRequest {
+  ResourceRef ref = 1 [(buf.validate.field).required = true];
+  // Stream to resolve changes for; empty selects the primary stream.
+  string stream_id = 2 [(buf.validate.field).string.max_len = 253];
+  // Empty defaults to the detected current version.
+  string from_version = 3 [(buf.validate.field).string.max_len = 128];
+  // Empty defaults to the latest version.
+  string to_version = 4 [(buf.validate.field).string.max_len = 128];
+}
+
+message GetChangesResponse {
+  oneof event {
+    Progress progress = 1;
+    ChangeSet result = 2;
+    // One version's changes, streamed as soon as its extraction batch
+    // completes so clients can render the changelog incrementally. The
+    // terminal result event still carries the complete set.
+    VersionChanges partial = 3;
+  }
+}
+
+message AssessImpactRequest {
+  ResourceRef ref = 1 [(buf.validate.field).required = true];
+  // Stream the upgrade applies to; empty selects the primary stream.
+  string stream_id = 2 [(buf.validate.field).string.max_len = 253];
+  string from_version = 3 [(buf.validate.field).string.max_len = 128];
+  string to_version = 4 [(buf.validate.field).string.max_len = 128];
+  // Optional pre-resolved change set; when unset the server resolves changes
+  // itself (equivalent to GetChanges) before assessing. Bounded because it is
+  // caller-supplied and flows verbatim into the model prompt.
+  ChangeSet change_set = 5 [(buf.validate.field).cel = {
+    id: "change_set.version_count"
+    message: "change_set may carry at most 500 versions"
+    expression: "!has(this.versions) || size(this.versions) <= 500"
+  }];
+}
+
+message AssessImpactResponse {
+  oneof event {
+    Progress progress = 1;
+    ImpactAssessment result = 2;
+  }
+}
+
+// Progress is a streamed status update from a long-running stage.
+message Progress {
+  // Machine-readable stage ("fetching-changelog", "matching-resources").
+  string stage = 1;
+  // Human-readable status line.
+  string message = 2;
+}

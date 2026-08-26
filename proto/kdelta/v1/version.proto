@@ -1,0 +1,123 @@
+syntax = "proto3";
+
+package kdelta.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+import "kdelta/v1/common.proto";
+
+// VersionKind names what a version is a version *of*. A resource usually has
+// several (its packaging, its application, its images), modeled as separate
+// streams.
+enum VersionKind {
+  VERSION_KIND_UNSPECIFIED = 0;
+  // Packaging revision, e.g. a chart version.
+  VERSION_KIND_CHART = 1;
+  // Upstream application version.
+  VERSION_KIND_APP = 2;
+  VERSION_KIND_CONTAINER_IMAGE = 3;
+  VERSION_KIND_GIT_REVISION = 4;
+  VERSION_KIND_OTHER = 15;
+}
+
+// VersioningScheme defines how version strings of a stream are parsed,
+// ordered, and classified. Sources fetch unordered strings; the scheme alone
+// supplies ordering semantics.
+enum VersioningScheme {
+  VERSIONING_SCHEME_UNSPECIFIED = 0;
+  VERSIONING_SCHEME_SEMVER = 1;
+  // Tolerant semver: v-prefixes, partial versions.
+  VERSIONING_SCHEME_LOOSE_SEMVER = 2;
+  // Opaque tags ordered heuristically.
+  VERSIONING_SCHEME_TAG = 3;
+  // Revisions with no total order (comparison requires history).
+  VERSIONING_SCHEME_GIT = 4;
+  VERSIONING_SCHEME_OTHER = 15;
+}
+
+// VersionSource describes where a stream's available versions are published —
+// the recipe the versions stage executes. Sources are data, not code: they
+// can come from a detector, a dataset entry, or a user override.
+message VersionSource {
+  oneof source {
+    option (buf.validate.oneof).required = true;
+
+    GitHubReleasesSource github_releases = 1;
+    HelmRepositorySource helm_repository = 2;
+    OciRegistrySource oci_registry = 3;
+    ContainerTagsSource container_tags = 4;
+    GitTagsSource git_tags = 5;
+  }
+}
+
+// GitHubReleasesSource enumerates published releases of a repository.
+message GitHubReleasesSource {
+  string owner = 1 [(buf.validate.field).string.min_len = 1];
+  string repo = 2 [(buf.validate.field).string.min_len = 1];
+  // Optional anchored regex a release tag must match ("^v.*").
+  string tag_pattern = 3;
+}
+
+// HelmRepositorySource enumerates chart versions from a chart repository
+// index.
+message HelmRepositorySource {
+  string repository_url = 1 [(buf.validate.field).string.uri = true];
+  string chart = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+// OciRegistrySource enumerates artifact tags from an OCI registry repository.
+message OciRegistrySource {
+  // Registry and repository path without a tag ("registry.example.com/org/app").
+  string reference = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// ContainerTagsSource enumerates container image tags.
+message ContainerTagsSource {
+  // Image reference without a tag ("docker.io/library/redis").
+  string reference = 1 [(buf.validate.field).string.min_len = 1];
+  // Optional anchored regex a tag must match to count as a version.
+  string tag_pattern = 2;
+}
+
+// GitTagsSource enumerates tags of a git repository.
+message GitTagsSource {
+  string repository_url = 1 [(buf.validate.field).string.uri = true];
+  string tag_pattern = 2;
+}
+
+// Version is one published version of a stream.
+message Version {
+  string value = 1 [(buf.validate.field).string.min_len = 1];
+  google.protobuf.Timestamp released_at = 2;
+  bool prerelease = 3;
+  bool deprecated = 4;
+  // Content digest, when the source provides one.
+  string digest = 5;
+  repeated Link links = 6;
+}
+
+// VersionRange expresses a set of versions under a declared ordering scheme
+// using boundary events, so open-ended and multi-interval ranges are
+// representable ("introduced in 1.18 and never reverted", "1.2-1.4 and
+// 2.0-2.1"). Walking events in scheme order toggles membership: INTRODUCED
+// turns it on, FIXED turns it off exclusively, LAST_AFFECTED inclusively.
+message VersionRange {
+  VersioningScheme scheme = 1;
+  repeated VersionRangeEvent events = 2 [(buf.validate.field).repeated.min_items = 1];
+}
+
+// VersionRangeEvent is one boundary of a VersionRange.
+message VersionRangeEvent {
+  VersionRangeEventKind kind = 1;
+  string version = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+// VersionRangeEventKind classifies a range boundary.
+enum VersionRangeEventKind {
+  VERSION_RANGE_EVENT_KIND_UNSPECIFIED = 0;
+  VERSION_RANGE_EVENT_KIND_INTRODUCED = 1;
+  // Exclusive upper bound: the named version no longer carries the change.
+  VERSION_RANGE_EVENT_KIND_FIXED = 2;
+  // Inclusive upper bound: the last version that carries the change.
+  VERSION_RANGE_EVENT_KIND_LAST_AFFECTED = 3;
+}
