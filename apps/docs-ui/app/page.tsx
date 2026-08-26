@@ -26,13 +26,13 @@ const pipeline = [
     stage: "scan",
     question: "What is deployed?",
     detail:
-      "Detectors read the cluster — Helm release storage today, more on the roadmap — and emit resources with independently-updatable version streams.",
+      "Detectors read the cluster — Helm release storage today, more on the roadmap — and upstream identity is resolved from public indexes, verified against the deployed chart's own metadata.",
   },
   {
     stage: "versions",
     question: "What version is it?",
     detail:
-      "Deterministic resolution, no AI: upstream identity is verified against public indexes and the deployed chart's own metadata, then versions are enumerated and ordered.",
+      "Deterministic, no AI: versions are enumerated from the upstream source verified at scan time and ordered against the deployed version under the stream's scheme.",
   },
   {
     stage: "changes",
@@ -173,7 +173,9 @@ export default function Home() {
           <code className="font-mono">versions</code> need only cluster and
           network access; <code className="font-mono">impact</code> needs a
           Claude credential (a subscription via the{" "}
-          <code className="font-mono">claude</code> CLI, or an API key).
+          <code className="font-mono">claude</code> CLI, or an API key), which{" "}
+          <code className="font-mono">changes</code> uses too — without one it
+          serves the release notes verbatim.
         </p>
         <pre className="overflow-x-auto rounded-xl border border-border bg-card/60 p-4 font-mono text-sm">
           {cliTour}
