@@ -1,0 +1,22 @@
+# .git stays IN the context: the Go build stamps the version from VCS state.
+**/node_modules
+bin
+coverage
+.turbo
+**/.turbo
+apps/web/.next
+apps/web/out
+# The UI is built inside the image; the embed dir comes from that stage.
+internal/ui/dist
+*.log
+.env
+.env.*
+# Never let decrypted secret material into the build context (COPY . .): the
+# git-ignored plaintext siblings of the .enc.env files live under secrets/
+# dirs (e.g. infra/.../secrets/restricted/*.env). The root .env globs above do
+# not match those nested paths.
+**/secrets/
+**/*.env
+# Local kubeconfigs and demo state.
+hack/.demo-kubeconfig
+.claude
