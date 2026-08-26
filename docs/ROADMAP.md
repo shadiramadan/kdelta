@@ -258,9 +258,8 @@ deployment:
 ## Docs site
 
 - Real documentation content in `apps/docs-ui`: getting started,
-  detectors, changelog/impact guides.
-- GitHub Pages deploy workflow, `kdelta.dev` custom domain (CNAME).
-- Live internal demo at `demo.kdelta.dev` via the Cloudflare tunnel overlay.
+  detectors, changelog/impact guides (the landing page ships; docs pages are
+  the unbuilt part).
 
 ## Infra & deployment
 

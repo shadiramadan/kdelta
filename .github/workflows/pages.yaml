@@ -1,0 +1,52 @@
+name: pages
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/docs-ui/**
+      - packages/theme/**
+      - packages/ui/**
+      - pnpm-lock.yaml
+      - .github/workflows/pages.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deployment at a time; a newer push supersedes an in-flight one.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: pnpm install --frozen-lockfile
+      - run: task docs:build
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: apps/docs-ui/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
