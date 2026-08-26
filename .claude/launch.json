@@ -3,13 +3,15 @@
   "configurations": [
     {
       "name": "kdelta-dev",
-      "runtimeExecutable": "env",
-      "runtimeArgs": [
-        "KUBECONFIG=/Users/shadi/organizations/shadiramadan/kdelta/hack/.demo-kubeconfig",
-        "task",
-        "dev"
-      ],
+      "runtimeExecutable": "task",
+      "runtimeArgs": ["dev"],
       "port": 3000
+    },
+    {
+      "name": "kdelta-docs",
+      "runtimeExecutable": "task",
+      "runtimeArgs": ["dev:docs"],
+      "port": 3001
     }
   ]
 }
