@@ -360,6 +360,6 @@ uses the well-known actions for docker building, SBOMs, and signing (with
 `task docker:build` / `task sbom` / `task sign` as the local equivalents).
 Releases are cut by release-please; images go to GitHub Packages with syft
 SBOMs, cosign signatures, and build provenance attestations. A rendered k8s
-manifest ships as a release artifact. Note: publishing runs automatically only
-once release-please is given a PAT/App token (see the roadmap) — until then,
-trigger `publish` manually from the release tag.
+manifest ships as a release artifact. Releases are cut by release-please with
+a repository-scoped GitHub App token, so a published release triggers the
+publish workflow automatically.

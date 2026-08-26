@@ -2,9 +2,9 @@ name: publish
 on:
   release:
     types: [published]
-  # Manual fallback: releases cut by release-please with the default
-  # GITHUB_TOKEN don't emit workflow-triggering events. Run this from the
-  # release tag until a PAT/App token automates the chain (see ROADMAP).
+  # Releases are cut by release-please with a GitHub App token, so the
+  # `release` event above fires automatically; dispatch from a tag remains
+  # available to re-run a publish.
   workflow_dispatch:
 
 env:

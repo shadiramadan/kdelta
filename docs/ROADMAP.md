@@ -255,9 +255,6 @@ deployment:
 
 ## Infra & deployment
 
-- Give release-please a PAT/GitHub App token so its releases trigger the
-  publish workflow automatically (default `GITHUB_TOKEN` events are
-  suppressed; until then `publish` is run manually from the release tag).
 - Publish the container image to GitHub Packages so the demo cluster pulls
   released images instead of side-loaded dev builds, and pin the deployment to
   an image digest (`@sha256:…`) rather than the mutable `:latest` tag once a
