@@ -211,8 +211,10 @@ backends exist; a sandboxed one is on the roadmap:
   + tool-runner loop; requires `ANTHROPIC_API_KEY`; model overridable via
   `ANTHROPIC_MODEL`.
 
-`KDELTA_AGENT=claude|api` forces the choice. The container image ships the
-`claude` CLI alongside the kdelta binary for the default backend.
+`KDELTA_AGENT=claude|api` forces the choice, and `KDELTA_EFFORT`
+(low/medium/high/xhigh/max) caps reasoning effort on either backend — the
+demo overlay runs at medium. The container image ships the `claude` CLI
+alongside the kdelta binary for the default backend.
 
 ### Agent tool confinement
 

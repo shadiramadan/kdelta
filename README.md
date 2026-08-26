@@ -61,6 +61,9 @@ access; the AI flows need a model credential:
     overrides the default model on this backend.
 - **`GITHUB_TOKEN`** (optional) — raises GitHub API rate limits for version and
   release-note fetches. Unauthenticated works but is rate-limited.
+- **`KDELTA_EFFORT`** (optional) — caps the agent's reasoning effort on either
+  backend (`low`, `medium`, `high`, `xhigh`, `max`); lower is faster and
+  cheaper at some cost in reasoning depth. Unset keeps each backend's default.
 
 ## Quickstart
 

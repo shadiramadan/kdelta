@@ -1,0 +1,15 @@
+# The demo runs the agent at medium reasoning effort: extraction and impact
+# stay useful while runs finish faster and spend less of the subscription
+# than the harness's high-end default. Raise it if findings visibly thin.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kdelta
+spec:
+  template:
+    spec:
+      containers:
+        - name: kdelta
+          env:
+            - name: KDELTA_EFFORT
+              value: medium

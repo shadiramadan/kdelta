@@ -75,6 +75,9 @@ func TestClaudeCodeExtractChanges(t *testing.T) {
 			t.Errorf("args missing %q:\n%s", want, args)
 		}
 	}
+	if strings.Contains(args, "--effort") {
+		t.Errorf("args carry --effort without an Effort override:\n%s", args)
+	}
 	// Extraction processes attacker-controllable release notes; the built-in
 	// tool set must be disabled so an injected instruction has no tools to
 	// reach. "--tools" with an empty value is how the CLI disables them.
@@ -153,5 +156,22 @@ func TestClaudeCodeCredentialErrors(t *testing.T) {
 	})
 	if !errors.Is(err, ErrNoCredentials) {
 		t.Errorf("error = %v, want ErrNoCredentials", err)
+	}
+}
+
+func TestClaudeCodeEffortOverride(t *testing.T) {
+	inner := `{"versions":[]}`
+	cliPath, argsPath := writeStub(t, resultLine(t, inner))
+
+	runner := &ClaudeCode{CLIPath: cliPath, DBPath: "/tmp/db", Effort: "medium"}
+	_, err := runner.ExtractChanges(context.Background(), ExtractRequest{
+		Package:  &kdeltav1.PackageKey{System: "helm", Name: "cert-manager"},
+		Releases: []ReleaseNotes{{Version: "v1.18.0", Body: "notes"}},
+	})
+	if err != nil {
+		t.Fatalf("ExtractChanges: %v", err)
+	}
+	if args := recordedArgs(t, argsPath); !strings.Contains(args, "--effort\nmedium") {
+		t.Errorf("args missing --effort medium:\n%s", args)
 	}
 }

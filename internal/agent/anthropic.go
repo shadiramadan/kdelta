@@ -31,6 +31,7 @@ const (
 type Anthropic struct {
 	client anthropic.Client
 	model  string
+	effort string
 }
 
 // NewAnthropic builds the in-process runner. The model comes from
@@ -40,7 +41,7 @@ func NewAnthropic() *Anthropic {
 	if model == "" {
 		model = defaultModel
 	}
-	return &Anthropic{client: anthropic.NewClient(), model: model}
+	return &Anthropic{client: anthropic.NewClient(), model: model, effort: effortFromEnv()}
 }
 
 func progress(fn func(stage, message string), stage, message string) {
@@ -85,14 +86,20 @@ func (a *Anthropic) ExtractChanges(ctx context.Context, req ExtractRequest) ([]*
 		if err != nil {
 			return nil, err
 		}
-		resp, err := a.client.Messages.New(ctx, anthropic.MessageNewParams{
+		params := anthropic.MessageNewParams{
 			Model:     anthropic.Model(a.model),
 			MaxTokens: responseMaxTokens,
 			System:    []anthropic.TextBlockParam{{Text: extractSystemPrompt}},
 			Messages: []anthropic.MessageParam{
 				anthropic.NewUserMessage(anthropic.NewTextBlock(prompt)),
 			},
-		})
+		}
+		if a.effort != "" {
+			params.OutputConfig = anthropic.OutputConfigParam{
+				Effort: anthropic.OutputConfigEffort(a.effort),
+			}
+		}
+		resp, err := a.client.Messages.New(ctx, params)
 		if err != nil {
 			return nil, wrapAPIError(err)
 		}
@@ -179,16 +186,22 @@ func (a *Anthropic) AssessImpact(ctx context.Context, req AssessRequest) (*kdelt
 		return nil, err
 	}
 
-	runner := a.client.Beta.Messages.NewToolRunner(tools, anthropic.BetaToolRunnerParams{
-		BetaMessageNewParams: anthropic.BetaMessageNewParams{
-			Model:     anthropic.Model(a.model),
-			MaxTokens: responseMaxTokens,
-			System:    []anthropic.BetaTextBlockParam{{Text: assessSystemPrompt}},
-			Messages: []anthropic.BetaMessageParam{
-				anthropic.NewBetaUserMessage(anthropic.NewBetaTextBlock(prompt)),
-			},
+	assessParams := anthropic.BetaMessageNewParams{
+		Model:     anthropic.Model(a.model),
+		MaxTokens: responseMaxTokens,
+		System:    []anthropic.BetaTextBlockParam{{Text: assessSystemPrompt}},
+		Messages: []anthropic.BetaMessageParam{
+			anthropic.NewBetaUserMessage(anthropic.NewBetaTextBlock(prompt)),
 		},
-		MaxIterations: assessMaxIterations,
+	}
+	if a.effort != "" {
+		assessParams.OutputConfig = anthropic.BetaOutputConfigParam{
+			Effort: anthropic.BetaOutputConfigEffort(a.effort),
+		}
+	}
+	runner := a.client.Beta.Messages.NewToolRunner(tools, anthropic.BetaToolRunnerParams{
+		BetaMessageNewParams: assessParams,
+		MaxIterations:        assessMaxIterations,
 	})
 	message, err := runner.RunToCompletion(ctx)
 	if err != nil {

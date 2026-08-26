@@ -33,13 +33,16 @@ type ClaudeCode struct {
 	DBPath string
 	// SelfPath overrides the kdelta executable spawned for agent-tools.
 	SelfPath string
+	// Effort overrides the harness's reasoning-effort level (low, medium,
+	// high, xhigh, max); empty keeps the CLI's default.
+	Effort string
 }
 
 const claudeCodeModelLabel = "claude-agent-sdk"
 
-// NewClaudeCode builds the CLI-backed runner.
+// NewClaudeCode builds the CLI-backed runner, honoring KDELTA_EFFORT.
 func NewClaudeCode(dbPath string) *ClaudeCode {
-	return &ClaudeCode{DBPath: dbPath}
+	return &ClaudeCode{DBPath: dbPath, Effort: effortFromEnv()}
 }
 
 func (c *ClaudeCode) cli() string {
@@ -81,7 +84,11 @@ func (c *ClaudeCode) run(ctx context.Context, prompt string, extraArgs []string,
 	}
 	defer os.RemoveAll(dir)
 
-	args := append([]string{"-p", prompt, "--permission-mode", "dontAsk"}, extraArgs...)
+	args := []string{"-p", prompt, "--permission-mode", "dontAsk"}
+	if c.Effort != "" {
+		args = append(args, "--effort", c.Effort)
+	}
+	args = append(args, extraArgs...)
 	cmd := exec.CommandContext(ctx, c.cli(), args...)
 	cmd.Dir = dir
 	var stderr bytes.Buffer

@@ -19,6 +19,7 @@ generators:
 patches:
   - path: cloudflared-token-patch.yaml
   - path: claude-token-patch.yaml
+  - path: agent-effort-patch.yaml
 
 # The demo runs released images pulled from the public registry, pinned by
 # digest (v0.2.0) so the deployment is reproducible and side-loading dev
