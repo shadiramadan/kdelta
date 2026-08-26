@@ -265,11 +265,12 @@ deployment:
 - Multi-arch (amd64 + arm64) image builds — the demo node is amd64 while dev
   machines are arm64.
 - Smoke-test the skaffold + kind loop in CI.
-- Supply-chain pinning: pin Dockerfile base images by digest (they float on
+- Supply-chain pinning, remaining pieces (GitHub Actions are SHA-pinned with
+  Dependabot keeping actions, modules, workspace packages, and base images
+  current): pin Dockerfile base images by digest (they float on
   `:latest`/rolling tags today), pin or checksum the `claude` CLI installer
-  (currently `curl | bash` of an unversioned script), and pin third-party
-  GitHub Actions to commit SHAs instead of mutable major-version tags — with
-  Dependabot to keep them current. Verify cosign signatures at deploy time.
+  (currently `curl | bash` of an unversioned script), and verify cosign
+  signatures at deploy time.
 - Production RBAC hardening: the demo grant includes cluster-wide secret reads
   because Helm stores releases as Secrets and RBAC cannot filter by type —
   offer a secret-free mode (reduced helm detection) and per-overlay
@@ -292,5 +293,6 @@ deployment:
   TS/CSS formatting once stable — pairs with the oxlint setup.
 - Consider `oxlint --type-check` replacing the separate `tsc --noEmit`
   typecheck step once we trust its TS7-semantics coverage.
-- Migrate to pnpm 11 (Node 22+, settings move into pnpm-workspace.yaml, new
-  supply-chain defaults like `minimumReleaseAge`).
+- Migrate to pnpm 11 (Node 22+, settings move into pnpm-workspace.yaml).
+  `minimumReleaseAge` is already set explicitly (24h) so dependabot's pnpm 11
+  updater and our pnpm 10 agree; revisit the value with the migration.
