@@ -79,7 +79,7 @@ importers:
         specifier: ^5.9.0
         version: 5.9.3
 
-  apps/marketing-ui:
+  apps/docs-ui:
     dependencies:
       '@kdelta/theme':
         specifier: workspace:*
