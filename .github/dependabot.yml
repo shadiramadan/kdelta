@@ -13,6 +13,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # fix-typed so module bumps (often CVE fixes in the shipped binary)
+    # trigger a release-please patch release; actions/npm bumps stay build-typed.
+    commit-message:
+      prefix: fix
+      include: scope
     groups:
       go-minor-patch:
         update-types: [minor, patch]
@@ -27,3 +32,6 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    commit-message:
+      prefix: fix
+      include: scope
