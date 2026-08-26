@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/shadiramadan/kdelta/compare/v0.1.0...v0.1.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* **deps:** ship golang.org/x/mod v0.40.0 for GO-2026-6180 ([61ca5a5](https://github.com/shadiramadan/kdelta/commit/61ca5a51a38085254078edd12ecf40069f849456))
+
 ## 0.1.0 (2026-08-26)
 
 
