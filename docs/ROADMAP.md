@@ -120,7 +120,8 @@ New detectors follow the path in
   `--json-schema` (schema-enforced `structured_output`) instead of prompt
   contracts.
 - Run agentic flows in a Kubernetes agent sandbox
-  (kubernetes-sigs/agent-sandbox): isolate model-driven gathering in
+  ([kubernetes-sigs/agent-sandbox](https://agent-sandbox.sigs.k8s.io)):
+  isolate model-driven gathering in
   sandboxed pods behind the same `agent.Runner` seam.
 - Determinate progress: `Progress` carries only `stage` + a prose `message`,
   so counts live in the text ("6/22"). Add `completed`/`total` fields so the UI
@@ -214,8 +215,10 @@ deployment:
 
 ## Web UI
 
-- Impact views: the per-resource rollup, plus an alternative grouping by
-  impact cause with affected resources nested under each cause.
+- Impact views for exploring affected resources: the per-resource rollup,
+  an alternative grouping by impact cause with affected resources nested
+  under each cause, and drill-down from a finding to the live objects it
+  names.
 - Grow `packages/ui` as real views land: inputs, tables, dialogs, badges —
   added via `shadcn add` into the package.
 - Dependency/hierarchy graph with XYFlow.
@@ -239,8 +242,14 @@ deployment:
 ## Community dataset
 
 - A committable, contribution-friendly repo layout (`data/`) for cacheable
-  scan/versions/changelog data, in lieu of a centralized API service.
-- Seed with top CNCF projects: source repo links, release/changelog locations.
+  scan/versions/changelog data, in lieu of a centralized API service. Beyond
+  contribution, this is the deduplication mechanism for paid agent work: a
+  changelog extracted once for a popular package ships in the dataset, so
+  every kdelta install stops re-running the same model calls against the
+  same release notes.
+- Seed with top CNCF projects (the top ~50 first): source repo links,
+  release/changelog locations, and pre-extracted change sets for their
+  common upgrade ranges.
 - Dataset profiles supplying chart repository URLs, consulted ahead of the
   Artifact Hub lookup in `internal/resolve`.
 - AI contribution guidelines for dataset entries (documented in CONTRIBUTING.md).
