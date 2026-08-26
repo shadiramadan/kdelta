@@ -1,15 +1,53 @@
-# Binaries for programs and plugins
+# Binaries
+bin/
+
+# Task fingerprint cache
+.task/
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
 
-# Test binary, built with `go test -c`
+# Go test and coverage output
 *.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+coverage/
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
+# Node / frontend
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# Embedded UI build output (populated by `task ui:embed`, placeholder kept)
+internal/ui/dist/*
+!internal/ui/dist/.gitkeep
+
+# Local databases
+*.db
+*.sqlite
+
+# Locally rendered release artifacts (task manifest / task sbom)
+kdelta-manifest.yaml
+sbom.spdx.json
+
+# Demo cluster kubeconfig (client certs — fetched by hack/demo-setup.sh)
+hack/.demo-kubeconfig
+
+chats
+
+# Environment and editor
+.env
+.env.*
+.DS_Store
+.idea/
+.vscode/
+
+### Secrets
+**/secrets/confidential/*.*
+!**/secrets/confidential/*.enc.*
+**/secrets/restricted/*.*
+!**/secrets/restricted/*.enc.*

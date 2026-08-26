@@ -1,0 +1,210 @@
+# Task (taskfile.dev) is the single entry point for building, testing, and
+# linting kdelta. CI runs these same targets — keep them environment-agnostic.
+version: "3"
+
+# Binary versioning uses Go's built-in VCS stamping (debug.ReadBuildInfo), so
+# there is no -X ldflag; IMAGE_TAG only names local docker images.
+vars:
+  BIN: bin/kdelta
+  IMAGE: ghcr.io/shadiramadan/kdelta
+  IMAGE_TAG:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo dev
+  LDFLAGS: -s -w
+
+tasks:
+  default:
+    silent: true
+    cmds:
+      - task --list
+
+  setup:
+    desc: Install JS dependencies and git hooks
+    cmds:
+      - pnpm install
+      - task: hooks:install
+
+  generate:
+    desc: Generate Go + TypeScript from proto/
+    cmds:
+      # protoc-gen-es resolves from the pnpm workspace, buf from the host.
+      - PATH="{{.ROOT_DIR}}/node_modules/.bin:$PATH" buf generate
+    sources:
+      - proto/**/*.proto
+      - buf.yaml
+      - buf.gen.yaml
+    generates:
+      - gen/**/*.go
+      - packages/api/src/gen/**/*.ts
+
+  generate:check:
+    desc: Fail if generated code drifts from proto/
+    cmds:
+      - task: generate
+      - git diff --exit-code -- gen packages/api/src/gen
+
+  breaking:
+    desc: Check proto/ for breaking changes against main
+    cmds:
+      - buf breaking --against '.git#branch=main'
+
+  fmt:
+    desc: Format Go and proto sources
+    cmds:
+      - golangci-lint fmt
+      - buf format -w
+
+  lint:
+    desc: Lint Go, proto, and the UI
+    cmds:
+      - golangci-lint run
+      - buf lint
+      - pnpm exec turbo run lint typecheck
+
+  test:
+    desc: Run all tests with coverage (coverage/go.out)
+    cmds:
+      - mkdir -p coverage
+      - go test -race -covermode=atomic -coverprofile=coverage/go.out ./...
+      # Generated code would dominate the denominator; report on written code.
+      - grep -v '/gen/' coverage/go.out > coverage/go.tmp && mv coverage/go.tmp coverage/go.out
+      - go tool cover -func=coverage/go.out | tail -1
+
+  ui:build:
+    desc: Build the web UI static export (apps/app-ui/out)
+    cmds:
+      - pnpm exec turbo run build --filter=@kdelta/app-ui
+
+  ui:embed:
+    desc: Copy the UI export into the Go embed directory
+    cmds:
+      - rm -rf internal/ui/dist
+      - mkdir -p internal/ui/dist
+      - cp -R apps/app-ui/out/. internal/ui/dist/
+      - touch internal/ui/dist/.gitkeep
+
+  marketing:build:
+    desc: Build the marketing/docs site static export (apps/marketing-ui/out)
+    cmds:
+      - pnpm exec turbo run build --filter=@kdelta/marketing-ui
+
+  build:
+    desc: Generate, build the UI, embed it, and compile {{.BIN}}
+    cmds:
+      - task: generate
+      - task: ui:build
+      - task: ui:embed
+      - go build -trimpath -ldflags "{{.LDFLAGS}}" -o {{.BIN}} .
+
+  build:go:
+    desc: Fast Go-only build (placeholder UI, no codegen)
+    cmds:
+      - go build -trimpath -ldflags "{{.LDFLAGS}}" -o {{.BIN}} .
+
+  install:
+    desc: Full build, then go install the binary
+    cmds:
+      - task: build
+      - go install -trimpath -ldflags "{{.LDFLAGS}}" .
+
+  serve:
+    desc: Full build, then serve the API + UI (:8080)
+    cmds:
+      - task: build
+      - "{{.BIN}} serve {{.CLI_ARGS}}"
+
+  dev:
+    desc: Run the Go API server (:8080) and UI dev server (:3000) in parallel
+    deps:
+      - dev:server
+      - dev:ui
+
+  dev:server:
+    desc: Run the Go API server with live UI proxying expected from :3000
+    cmds:
+      - go run . serve --bind :8080
+
+  dev:ui:
+    desc: Run the Next.js dev server (proxies /rpc to :8080)
+    cmds:
+      - pnpm --filter @kdelta/app-ui dev
+
+  dev:marketing:
+    desc: Run the marketing/docs site dev server (:3001)
+    cmds:
+      - pnpm --filter @kdelta/marketing-ui dev
+
+  docker:build:
+    desc: Build the container image
+    cmds:
+      - docker build -t {{.IMAGE}}:{{.IMAGE_TAG}} .
+
+  sbom:
+    desc: Generate an SPDX SBOM for the container image
+    cmds:
+      - syft {{.IMAGE}}:{{.IMAGE_TAG}} -o spdx-json=sbom.spdx.json
+
+  scan:cve:
+    desc: Scan the SBOM for known CVEs with grype (fails on high/critical)
+    deps: [sbom]
+    cmds:
+      # Scan the SBOM syft produced (not the image again) so the SBOM stays the
+      # single source of truth. Exit non-zero at high severity so CI can gate.
+      - grype sbom:sbom.spdx.json --fail-on high
+
+  sign:
+    desc: "Keyless-sign an image by digest: task sign -- <image@sha256:...>"
+    cmds:
+      - cosign sign --yes {{.CLI_ARGS}}
+
+  manifest:
+    desc: Render the deployable k8s manifest (kdelta-manifest.yaml)
+    cmds:
+      - kubectl kustomize infra/kustomize/base > kdelta-manifest.yaml
+
+  precommit:
+    desc: The pre-commit gate (same targets as CI)
+    cmds:
+      - task: lint
+      - task: test
+
+  hooks:install:
+    desc: Point git at the repo's pre-commit hooks
+    cmds:
+      - git config core.hooksPath .githooks
+
+  clean:
+    desc: Remove build artifacts and the local kdelta cache database
+    cmds:
+      - rm -rf bin coverage apps/app-ui/out apps/app-ui/.next apps/marketing-ui/out apps/marketing-ui/.next internal/ui/dist
+      - mkdir -p internal/ui/dist
+      - touch internal/ui/dist/.gitkeep
+      # The local cache (scan snapshots, version lists, change sets); covers
+      # the default store path on both Linux (XDG) and macOS.
+      - rm -rf "${XDG_CACHE_HOME:-$HOME/.cache}/kdelta" "$HOME/Library/Caches/kdelta"
+
+  sops:encrypt:
+    desc: Encrypt secrets
+    dir: "{{.USER_WORKING_DIR}}"
+    cmds:
+      - for: { var: DECRYPTED_FILES, as: FILE }
+        # For each non-encrypted file, encrypt it and save it in the same directory with .enc inserted before the existing extension
+        cmd: sops -e {{.FILE}} > $(dirname {{.FILE}})/$(basename {{.FILE}} | sed 's/\(\.[^.]*$\)/.enc\1/g')
+    vars:
+      KEY: '{{default "**" .KEY}}'
+      DECRYPTED_FILES:
+        # List all non-encrypted files in every sub-directory of a secrets directory
+        sh: find . -path '**/secrets/{{.KEY}}/*' -type f ! -path '**/secrets/dynamic/*' ! -name '*.enc.*'
+
+  sops:decrypt:
+    desc: Decrypt secrets
+    dir: "{{.USER_WORKING_DIR}}"
+    cmds:
+      - for: { var: ENCRYPTED_FILES, as: FILE }
+        # For each encrypted file, decrypt it and save it in the same directory without the .enc extension
+        cmd: sops -d {{.FILE}} > $(dirname {{.FILE}})/$(basename {{.FILE}} | sed 's/\(\.enc\)//g')
+    vars:
+      KEY: '{{default "**" .KEY}}'
+      ENCRYPTED_FILES:
+        # List all encrypted files in every sub-directory of a secrets directory
+        # Files are expected to follow the format name.enc.ext
+        sh: find . -path '**/secrets/{{.KEY}}/*' -type f -name '*.enc.*'

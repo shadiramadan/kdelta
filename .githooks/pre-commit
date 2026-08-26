@@ -1,0 +1,4 @@
+#!/bin/sh
+# Pre-commit gate: same Taskfile targets as CI. Install with `task hooks:install`.
+set -e
+exec task precommit
