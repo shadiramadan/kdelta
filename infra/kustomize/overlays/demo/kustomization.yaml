@@ -19,3 +19,10 @@ generators:
 patches:
   - path: cloudflared-token-patch.yaml
   - path: claude-token-patch.yaml
+
+# The demo runs released images pulled from the public registry, pinned by
+# digest (v0.1.1) so the deployment is reproducible and side-loading dev
+# builds is no longer part of the loop.
+images:
+  - name: ghcr.io/shadiramadan/kdelta
+    digest: sha256:24b4346f79d685bada380560cacdf7af32e25c2768b5bf4eb570923fba4bc1af
