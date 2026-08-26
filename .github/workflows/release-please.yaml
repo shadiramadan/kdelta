@@ -1,0 +1,20 @@
+name: release-please
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      # Note: releases created with the default GITHUB_TOKEN do not trigger
+      # other workflows; publish.yaml listens for `release: published`, which
+      # requires a PAT or GitHub App token here once publishing should be
+      # fully automatic.
+      - uses: googleapis/release-please-action@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
