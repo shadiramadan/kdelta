@@ -3,7 +3,7 @@ module github.com/shadiramadan/kdelta
 go 1.26.3
 
 require (
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260709200747-435963d16310.1
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260709200747-435963d16310.1
 	charm.land/fang/v2 v2.0.1
 	connectrpc.com/connect v1.20.0
 	connectrpc.com/grpchealth v1.5.0
@@ -12,7 +12,7 @@ require (
 	github.com/anthropics/anthropic-sdk-go v1.66.0
 	github.com/modelcontextprotocol/go-sdk v1.7.0
 	github.com/spf13/cobra v1.10.2
-	golang.org/x/mod v0.37.0
+	golang.org/x/mod v0.40.0
 	google.golang.org/protobuf v1.36.12
 	helm.sh/helm/v3 v3.21.4
 	k8s.io/apimachinery v0.36.4
