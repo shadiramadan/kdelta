@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.0](https://github.com/shadiramadan/kdelta/compare/v0.1.1...v0.2.0) (2026-08-26)
+
+
+### Features
+
+* **docs-ui:** build out the kdelta.dev landing page ([ed63358](https://github.com/shadiramadan/kdelta/commit/ed63358cbe5a118e83060885f365e5bdcd02001d))
+* **infra:** pin the demo to the released image digest ([c260b4d](https://github.com/shadiramadan/kdelta/commit/c260b4da241750c1d134c8838b7a42d5c078b258))
+
+
+### Bug Fixes
+
+* align CLI help and code prose with implemented behavior ([7cb56f9](https://github.com/shadiramadan/kdelta/commit/7cb56f9d918373302f39a1b0cba5945c51172ec2))
+* **docs-ui:** attribute resolution to scan and credential use to changes ([9e1bc19](https://github.com/shadiramadan/kdelta/commit/9e1bc19001627a136e3659d9832a03b502d84ed3))
+
 ## [0.1.1](https://github.com/shadiramadan/kdelta/compare/v0.1.0...v0.1.1) (2026-08-26)
 
 
