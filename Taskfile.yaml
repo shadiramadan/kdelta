@@ -82,10 +82,10 @@ tasks:
       - cp -R apps/app-ui/out/. internal/ui/dist/
       - touch internal/ui/dist/.gitkeep
 
-  marketing:build:
-    desc: Build the marketing/docs site static export (apps/marketing-ui/out)
+  docs:build:
+    desc: Build the docs/landing site static export (apps/docs-ui/out)
     cmds:
-      - pnpm exec turbo run build --filter=@kdelta/marketing-ui
+      - pnpm exec turbo run build --filter=@kdelta/docs-ui
 
   build:
     desc: Generate, build the UI, embed it, and compile {{.BIN}}
@@ -128,10 +128,10 @@ tasks:
     cmds:
       - pnpm --filter @kdelta/app-ui dev
 
-  dev:marketing:
-    desc: Run the marketing/docs site dev server (:3001)
+  dev:docs:
+    desc: Run the docs/landing site dev server (:3001)
     cmds:
-      - pnpm --filter @kdelta/marketing-ui dev
+      - pnpm --filter @kdelta/docs-ui dev
 
   docker:build:
     desc: Build the container image
@@ -175,7 +175,7 @@ tasks:
   clean:
     desc: Remove build artifacts and the local kdelta cache database
     cmds:
-      - rm -rf bin coverage apps/app-ui/out apps/app-ui/.next apps/marketing-ui/out apps/marketing-ui/.next internal/ui/dist
+      - rm -rf bin coverage apps/app-ui/out apps/app-ui/.next apps/docs-ui/out apps/docs-ui/.next internal/ui/dist
       - mkdir -p internal/ui/dist
       - touch internal/ui/dist/.gitkeep
       # The local cache (scan snapshots, version lists, change sets); covers

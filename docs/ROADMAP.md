@@ -17,7 +17,7 @@ work (git history and release notes do that). Discuss items or propose new ones 
 - [Reliability & operability](#reliability--operability)
 - [Web UI](#web-ui)
 - [Community dataset](#community-dataset)
-- [Marketing / docs site](#marketing--docs-site)
+- [Docs site](#docs-site)
 - [Infra & deployment](#infra--deployment)
 - [Developer experience](#developer-experience)
 
@@ -255,9 +255,9 @@ deployment:
 - AI contribution guidelines for dataset entries (documented in CONTRIBUTING.md).
 - CI validation for dataset contributions.
 
-## Marketing / docs site
+## Docs site
 
-- Real documentation content in `apps/marketing-ui`: getting started,
+- Real documentation content in `apps/docs-ui`: getting started,
   detectors, changelog/impact guides.
 - GitHub Pages deploy workflow, `kdelta.dev` custom domain (CNAME).
 - Live internal demo at `demo.kdelta.dev` via the Cloudflare tunnel overlay.

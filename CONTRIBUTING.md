@@ -43,11 +43,11 @@ task dev          # Go API server + Next.js dev server, in parallel
 
 `task dev` starts the ConnectRPC server on `:8080` and the UI dev server on
 `:3000`; the UI proxies `/rpc/*` to the Go server, so open
-<http://localhost:3000>. The docs/marketing site (`task dev:marketing`) runs
+<http://localhost:3000>. The docs/landing site (`task dev:docs`) runs
 separately on `:3001`. `task --list` shows every available target.
 
 Default ports: `8080` kdelta server (API under `/rpc/`, embedded UI at `/`),
-`3000` app-ui dev server, `3001` marketing-ui dev server.
+`3000` app-ui dev server, `3001` docs-ui dev server.
 
 Other everyday targets:
 

@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kdelta-dev",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "KUBECONFIG=/Users/shadi/organizations/shadiramadan/kdelta/hack/.demo-kubeconfig",
+        "task",
+        "dev"
+      ],
+      "port": 3000
+    }
+  ]
+}

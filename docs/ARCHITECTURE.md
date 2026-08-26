@@ -320,9 +320,8 @@ A pnpm + Turborepo monorepo:
   at build time. Talks to the API with `@connectrpc/connect-web` and the
   generated `packages/api` client. Views: Resources (scan) and Resource detail
   (from/to version dropdowns, changelog + impact actions).
-- `apps/marketing-ui` — the project's documentation and marketing site
-  (currently a stub), also a static export, deployed to GitHub Pages at
-  kdelta.dev.
+- `apps/docs-ui` — the project's documentation and landing site, also a
+  static export, deployed to GitHub Pages at kdelta.dev.
 - `packages/api` — generated TypeScript client.
 - `packages/theme` — Tailwind v4 CSS-first design tokens (shadcn-compatible
   variables), imported by both apps.

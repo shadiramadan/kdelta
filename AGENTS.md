@@ -81,7 +81,7 @@ Read these before non-trivial work:
 | `gen/` | generated Go (do not edit) |
 | `proto/` | protobuf sources — the source of truth for all contracts |
 | `apps/app-ui/` | served UI (Next.js static export, embedded in the binary) |
-| `apps/marketing-ui/` | docs/marketing site for kdelta.dev (GitHub Pages, stub) |
+| `apps/docs-ui/` | docs + landing site for kdelta.dev (GitHub Pages) |
 | `packages/api/` | generated TypeScript client (do not edit `src/gen/`) |
 | `packages/theme/` | Tailwind v4 design tokens (shadcn-compatible CSS variables) |
 | `packages/ui/` | shared shadcn/ui components (`shadcn add` targets this package) |
