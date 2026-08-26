@@ -15,6 +15,6 @@ jobs:
       # other workflows; publish.yaml listens for `release: published`, which
       # requires a PAT or GitHub App token here once publishing should be
       # fully automatic.
-      - uses: googleapis/release-please-action@v5
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
