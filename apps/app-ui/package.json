@@ -16,8 +16,8 @@
     "@kdelta/api": "workspace:*",
     "@kdelta/theme": "workspace:*",
     "@kdelta/ui": "workspace:*",
-    "@tanstack/react-query": "^5.102.4",
-    "lucide-react": "^1.34.0",
+    "@tanstack/react-query": "^5.102.8",
+    "lucide-react": "^1.37.0",
     "next": "^16.3.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
